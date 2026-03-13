@@ -38,63 +38,43 @@ If the project is not on GitHub yet:
 
 ---
 
-## Step 2 – IAM user and least-privilege
+## Step 2 – IAM user and least-privilege (Terraform)
 
-We use a dedicated IAM user (or role) for TicketResolve so that:
+We use a dedicated IAM user for TicketResolve so that:
 
 - Permissions are limited to what the project needs (Bedrock, S3).
 - You can revoke or rotate access without affecting other work.
+- The setup is in code (Terraform) so it’s repeatable and reviewable.
 
-**2.1 – Create an IAM user (or reuse one)**
+**2.1 – Create the IAM user and policy with Terraform**
 
-1. In the AWS Console go to **IAM** → **Users** → **Create user**.
-2. User name: e.g. `ticketresolve-dev`.
-3. Do **not** add the user to any group yet; we’ll attach a custom policy in the next step.
+1. Go to the Terraform directory:
 
-**2.2 – Create a policy for TicketResolve**
+   ```bash
+   cd terraform/1_permissions
+   ```
 
-1. Go to **IAM** → **Policies** → **Create policy**.
-2. Choose **JSON** and use the policy below. Replace `YOUR_ACCOUNT_ID` and `ticketresolve-*` with your account ID and a bucket name prefix you’ll use (e.g. `ticketresolve-vectors-dev`).
+2. Copy the example variables and set your values:
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "BedrockInvoke",
-      "Effect": "Allow",
-      "Action": [
-        "bedrock:InvokeModel",
-        "bedrock:InvokeModelWithResponseStream"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "S3TicketResolveBuckets",
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:ListBucket",
-        "s3:DeleteObject"
-      ],
-      "Resource": [
-        "arn:aws:s3:::ticketresolve-*",
-        "arn:aws:s3:::ticketresolve-*/*"
-      ]
-    }
-  ]
-}
-```
+   ```bash
+   cp terraform.tfvars.example terraform.tfvars
+   ```
 
-3. Name the policy e.g. `TicketResolveDevPolicy` and create it.
+   Edit `terraform.tfvars`: set `aws_region` (e.g. `ap-southeast-2`), `iam_user_name` (e.g. `ticketresolve-dev`), and `iam_policy_name` (e.g. `TicketResolveDevPolicy`).
 
-**2.3 – Attach the policy to the user**
+3. Initialize and apply:
 
-1. Go back to **IAM** → **Users** → `ticketresolve-dev`.
-2. **Add permissions** → **Attach policies directly** → select `TicketResolveDevPolicy` → Add permissions.
+   ```bash
+   terraform init
+   terraform plan
+   terraform apply
+   ```
 
-**Learning note:** We only grant `InvokeModel` (and stream) for Bedrock and object/bucket operations for S3 buckets whose names start with `ticketresolve-*`. This is least-privilege: no EC2, Lambda, or other services.
+   Type `yes` when prompted. Terraform will create the IAM user, the policy (Bedrock invoke + S3 for `ticketresolve-*` buckets only), and attach the policy to the user.
+
+4. Note the output `next_step`: you’ll create access keys for this user in the console (Step 4.1).
+
+**Learning note:** The policy grants only `InvokeModel` (and stream) for Bedrock and object/bucket operations for S3 buckets whose names start with `ticketresolve-*`. That’s least-privilege: no EC2, Lambda, or other services. The Terraform is in `terraform/1_permissions/` so you can change or re-apply it later.
 
 ---
 
@@ -102,7 +82,7 @@ We use a dedicated IAM user (or role) for TicketResolve so that:
 
 Bedrock requires you to enable each model in the console before your code can call it.
 
-1. In the AWS Console switch to a region where Bedrock is available (e.g. **us-east-1** or **us-west-2**).
+1. In the AWS Console switch to a region where Bedrock is available (e.g. **ap-southeast-2** or **us-west-2**).
 2. Open **Amazon Bedrock** → **Model access** (or **Get started** → **Manage model access**).
 3. **Enable** at least one model you’ll use for TicketResolve, for example:
    - **Claude 3.5 Sonnet** or **Claude 3 Haiku** (Anthropic), or  
@@ -123,7 +103,7 @@ aws configure
 ```
 
 - **AWS Access Key ID** / **Secret Access Key**: create access keys for `ticketresolve-dev` in IAM → Users → Security credentials → Create access key (e.g. “Command line use”).
-- **Default region**: e.g. `us-east-1` (must be a region where Bedrock is available).
+- **Default region**: e.g. `ap-southeast-2` (must be a region where Bedrock is available).
 - **Output format**: `json` is fine.
 
 **4.2 – Verify Bedrock access**
@@ -131,13 +111,13 @@ aws configure
 List available foundation models (optional; confirms Bedrock API is reachable):
 
 ```bash
-aws bedrock list-foundation-models --region us-east-1 --query "modelSummaries[?contains(modelId, 'claude') || contains(modelId, 'nova')].[modelId]" --output table
+aws bedrock list-foundation-models --region ap-southeast-2 --query "modelSummaries[?contains(modelId, 'claude') || contains(modelId, 'nova')].[modelId]" --output table
 ```
 
-Or invoke a model (replace `MODEL_ID` with an enabled model, e.g. `anthropic.claude-3-5-sonnet-20241022-v2:0` in us-east-1):
+Or invoke a model (replace `MODEL_ID` with an enabled model, e.g. `anthropic.claude-3-5-sonnet-20241022-v2:0` in ap-southeast-2):
 
 ```bash
-aws bedrock-runtime invoke-model --region us-east-1 --model-id MODEL_ID --body "{\"anthropic_version\":\"bedrock-2023-05-31\",\"max_tokens\":50,\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one word.\"}]}" --content-type application/json out.json
+aws bedrock-runtime invoke-model --region ap-southeast-2 --model-id MODEL_ID --body "{\"anthropic_version\":\"bedrock-2023-05-31\",\"max_tokens\":50,\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one word.\"}]}" --content-type application/json out.json
 ```
 
 Then open `out.json` to confirm you get a response (you’ll see content in the file).
@@ -147,7 +127,7 @@ Then open `out.json` to confirm you get a response (you’ll see content in the 
 Create a test bucket (use a globally unique name):
 
 ```bash
-aws s3 mb s3://ticketresolve-vectors-YOUR_ACCOUNT_ID --region us-east-1
+aws s3 mb s3://ticketresolve-vectors-YOUR_ACCOUNT_ID --region ap-southeast-2
 aws s3 ls s3://ticketresolve-vectors-YOUR_ACCOUNT_ID
 ```
 
@@ -166,7 +146,7 @@ If both Bedrock and S3 commands succeed, your permissions and CLI setup are corr
 In your notes or a local file (do **not** commit secrets), record:
 
 - IAM user name and policy name.
-- AWS region you’re using (e.g. `us-east-1`).
+- AWS region you’re using (e.g. `ap-southeast-2`).
 - Bedrock model ID you enabled (e.g. `anthropic.claude-3-5-sonnet-20241022-v2:0`).
 - S3 bucket name prefix you’ll use (e.g. `ticketresolve-vectors-`).
 
