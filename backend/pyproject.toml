@@ -3,7 +3,10 @@ name = "ticketresolve-backend"
 version = "0.1.0"
 description = "TicketResolve backend: API, resolver agent, ingest"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "boto3>=1.40.0",  # S3 Vectors client added in 1.40.0
+    "python-dotenv>=1.0.0",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -24,8 +27,3 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 ignore = []
-per-file-ignores = { "tests/*" = ["S101"] }  # allow assert in tests
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
