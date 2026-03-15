@@ -24,11 +24,15 @@ def load_config() -> IngestConfig:
 
   vector_bucket_name = os.getenv("VECTOR_BUCKET_NAME")
   if not vector_bucket_name:
-    raise ValueError("VECTOR_BUCKET_NAME must be set (from terraform 2_vectors_ingest output bucket_name)")
+    raise ValueError(
+        "VECTOR_BUCKET_NAME must be set (from terraform 2_vectors_ingest output bucket_name)"
+    )
 
   vector_index_name = os.getenv("VECTOR_INDEX_NAME")
   if not vector_index_name:
-    raise ValueError("VECTOR_INDEX_NAME must be set (from terraform 2_vectors_ingest output vector_index_name)")
+    raise ValueError(
+        "VECTOR_INDEX_NAME must be set (from terraform 2_vectors_ingest output vector_index_name)"
+    )
 
   bedrock_model_id = os.getenv("BEDROCK_EMBED_MODEL_ID", "amazon.titan-embed-text-v2:0")
 
