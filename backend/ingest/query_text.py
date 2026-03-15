@@ -15,31 +15,31 @@ from .s3vectors_client import query_vectors
 
 
 def main() -> None:
-  cfg = load_config()
+    cfg = load_config()
 
-  query = "How do I reset my password?"
-  if len(sys.argv) > 1:
-    query = " ".join(sys.argv[1:])
+    query = "How do I reset my password?"
+    if len(sys.argv) > 1:
+        query = " ".join(sys.argv[1:])
 
-  print(f"Query: {query}")
-  print("Embedding query with Bedrock...")
-  [query_embedding] = embed_texts(cfg, [query])
+    print(f"Query: {query}")
+    print("Embedding query with Bedrock...")
+    [query_embedding] = embed_texts(cfg, [query])
 
-  print("Searching S3 Vectors index...")
-  hits = query_vectors(cfg, query_embedding, top_k=5)
+    print("Searching S3 Vectors index...")
+    hits = query_vectors(cfg, query_embedding, top_k=5)
 
-  print(f"\nFound {len(hits)} result(s):\n")
-  for i, hit in enumerate(hits, 1):
-    key = hit.get("key", "?")
-    dist = hit.get("distance")
-    meta = hit.get("metadata") or {}
-    text_preview = meta.get("text", meta.get("source", ""))
-    print(f"  {i}. key={key}" + (f"  distance={dist:.4f}" if dist is not None else ""))
-    if text_preview:
-      preview = text_preview[:80] + "..." if len(text_preview) > 80 else text_preview
-      print(f"     {preview}")
-    print()
+    print(f"\nFound {len(hits)} result(s):\n")
+    for i, hit in enumerate(hits, 1):
+        key = hit.get("key", "?")
+        dist = hit.get("distance")
+        meta = hit.get("metadata") or {}
+        text_preview = meta.get("text", meta.get("source", ""))
+        print(f"  {i}. key={key}" + (f"  distance={dist:.4f}" if dist is not None else ""))
+        if text_preview:
+            preview = text_preview[:80] + "..." if len(text_preview) > 80 else text_preview
+            print(f"     {preview}")
+        print()
 
 
 if __name__ == "__main__":
-  main()
+    main()
