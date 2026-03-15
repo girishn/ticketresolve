@@ -1,44 +1,42 @@
 # TicketResolve
 
-Agentic AI support ticket resolution system: Bedrock, S3 Vectors, and a simple web UI. Built step-by-step for learning.
+An agentic AI system that helps resolve support tickets using Amazon Bedrock, S3 Vectors, and a simple web UI. We built it step-by-step so you can follow along and understand how the pieces fit together.
 
-## Overview
+## What this project does
 
-TicketResolve uses a single **resolver** agent that searches a knowledge base and past tickets, drafts a response, and checks policy before returning a suggested resolution. Data lives in S3 Vectors; the API is FastAPI; infra is Terraform per component.
+A single **resolver** agent looks up your knowledge base and past tickets, drafts a reply, and runs it through a policy check before suggesting a resolution. Data lives in S3 (with S3 Vectors for embeddings); the app is a FastAPI backend plus a small web UI. Infra is Terraform, one component at a time.
 
-- **Repo layout and plan**: [gameplan.md](gameplan.md)
-- **Step-by-step guides**: [guides/](guides/) — start with [1_permissions.md](guides/1_permissions.md)
+- **The big picture and how we work:** [gameplan.md](gameplan.md)
+- **Walkthroughs:** [guides/](guides/) — start with [1_permissions.md](guides/1_permissions.md)
 
-## Prerequisites
+## What you need
 
-- [uv](https://docs.astral.sh/uv/) (Python package manager)
+- [uv](https://docs.astral.sh/uv/) for Python
 - Python 3.11+
-- AWS account and CLI configured (see Guide 1)
+- An AWS account and CLI set up (Guide 1 walks you through it)
 
-## Quick start
+## Getting started
 
-1. Clone the repo and open [gameplan.md](gameplan.md).
-2. Follow the guides in order: **1_permissions** → **2_vectors_ingest** → **3_agents** → **4_frontend**.
-3. Work through one guide (or one day) at a time; don’t skip ahead.
+1. Clone the repo and skim [gameplan.md](gameplan.md) so you know the plan.
+2. Do the guides in order: **1_permissions** → **2_vectors_ingest** → **3_agents** → **4_frontend**.
+3. Take your time — one guide (or one day) per chunk works better than rushing.
 
-## Structure
+## Repo layout
 
 ```
 ticketresolve/
-├── gameplan.md       # Project briefing and learning path
-├── guides/           # Numbered deployment guides
-├── backend/          # Python uv workspace (api, resolver, ingest)
-├── frontend/         # Simple single-page UI
-├── terraform/        # Per-component infra
+├── gameplan.md       # Project plan and how we build it
+├── guides/           # Numbered guides (permissions, vectors, agents, frontend)
+├── backend/          # Python (uv workspace): api, resolver, ingest
+├── frontend/         # Single-page UI
+├── terraform/        # Infra per component
 └── scripts/          # deploy, destroy, run_local
 ```
 
-## CI/CD
+## CI
 
-GitHub Actions runs on push and PRs:
-
-- **CI**: Lint (Ruff) and tests (pytest) for the backend. See [.github/workflows/ci.yml](.github/workflows/ci.yml).
+On push and PRs, GitHub Actions runs lint (Ruff) and tests (pytest) for the backend. See [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 ## License
 
-MIT (or add your chosen license file.)
+MIT (or add your own license file).

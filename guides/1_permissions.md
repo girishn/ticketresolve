@@ -1,27 +1,16 @@
 # Guide 1 – Permissions and AWS setup
 
-**Learning outcome:** Understand why we use least-privilege IAM, how Bedrock and S3 are accessed, and how to configure your local AWS environment for TicketResolve.
-
-Work through this guide in one or two sessions. Do not skip steps.
-
----
-
-## What you’ll do
-
-1. Create a GitHub repo and push this project (if not already done).
-2. Create an IAM user (or use an existing one) with only the permissions TicketResolve needs.
-3. Enable Bedrock model access in your AWS account.
-4. Configure the AWS CLI locally and verify access to Bedrock and S3.
+By the end of this guide you’ll understand why we use least-privilege IAM, how we talk to Bedrock and S3, and how to configure your local AWS environment for TicketResolve. Plan for one or two sessions and go through the steps in order — skipping ahead tends to cause confusion later.
 
 ---
 
 ## Step 1 – Put the project on GitHub
 
-If the project is not on GitHub yet:
+If it’s not there already:
 
-1. **Create a new repository** on GitHub (e.g. `ticketresolve`). Do not add a README, .gitignore, or license (we already have them).
+1. **Create a new repo** on GitHub (e.g. `ticketresolve`). Don’t add a README, .gitignore, or license — we already have those.
 
-2. **Initialize git and push** (from the project root):
+2. **Init and push** from the project root:
 
    ```bash
    git init
@@ -32,9 +21,9 @@ If the project is not on GitHub yet:
    git push -u origin main
    ```
 
-3. **Confirm CI runs:** Open the repo on GitHub → Actions. You should see a run for the push; the “lint-and-test” job should pass.
+3. **Check that CI runs:** On GitHub, open the repo → Actions. You should see a run from the push; the “lint-and-test” job should be green.
 
-**Why:** Having the project on GitHub with CI gives you a single place to push changes and see that lint and tests pass before moving to the next guide.
+Having the project on GitHub with CI gives you a single place to push and confirm that lint and tests pass before you move on.
 
 ---
 
@@ -42,9 +31,9 @@ If the project is not on GitHub yet:
 
 We use a dedicated IAM user for TicketResolve so that:
 
-- Permissions are limited to what the project needs (Bedrock, S3).
-- You can revoke or rotate access without affecting other work.
-- The setup is in code (Terraform) so it’s repeatable and reviewable.
+- Permissions are limited to what this project actually needs (Bedrock and S3).
+- You can revoke or rotate access without touching other work.
+- Everything is in code (Terraform), so it’s repeatable and easy to review.
 
 **2.1 – Create the IAM user and policy with Terraform**
 
@@ -54,7 +43,7 @@ We use a dedicated IAM user for TicketResolve so that:
    cd terraform/1_permissions
    ```
 
-2. Copy the example variables and set your values:
+2. Copy the example variables and fill in your values:
 
    ```bash
    cp terraform.tfvars.example terraform.tfvars
@@ -62,7 +51,7 @@ We use a dedicated IAM user for TicketResolve so that:
 
    Edit `terraform.tfvars`: set `aws_region` (e.g. `ap-southeast-2`), `iam_user_name` (e.g. `ticketresolve-dev`), and `iam_policy_name` (e.g. `TicketResolveDevPolicy`).
 
-3. Initialize and apply:
+3. Init and apply:
 
    ```bash
    terraform init
@@ -70,25 +59,25 @@ We use a dedicated IAM user for TicketResolve so that:
    terraform apply
    ```
 
-   Type `yes` when prompted. Terraform will create the IAM user, the policy (Bedrock invoke + S3 for `ticketresolve-*` buckets only), and attach the policy to the user.
+   Type `yes` when prompted. Terraform creates the IAM user, a policy that allows Bedrock invoke and S3 only for `ticketresolve-*` buckets, and attaches that policy to the user.
 
-4. Note the output `next_step`: you’ll create access keys for this user in the console (Step 4.1).
+4. Note the output `next_step`: you’ll create access keys for this user in the console in Step 4.1.
 
-**Learning note:** The policy grants only `InvokeModel` (and stream) for Bedrock and object/bucket operations for S3 buckets whose names start with `ticketresolve-*`. That’s least-privilege: no EC2, Lambda, or other services. The Terraform is in `terraform/1_permissions/` so you can change or re-apply it later.
+The policy only grants `InvokeModel` (and stream) for Bedrock and object/bucket operations for S3 buckets whose names start with `ticketresolve-*`. No EC2, Lambda, or other services — that’s least-privilege. The Terraform lives in `terraform/1_permissions/` so you can tweak or re-apply it later.
 
 ---
 
 ## Step 3 – Enable Bedrock model access
 
-Bedrock requires you to enable each model in the console before your code can call it.
+Bedrock makes you enable each model in the console before your code can call it.
 
-1. In the AWS Console switch to a region where Bedrock is available (e.g. **ap-southeast-2** or **us-west-2**).
+1. In the AWS Console, pick a region where Bedrock is available (e.g. **ap-southeast-2** or **us-west-2**).
 2. Open **Amazon Bedrock** → **Model access** (or **Get started** → **Manage model access**).
-3. **Enable** at least one model you’ll use for TicketResolve, for example:
-   - **Claude 3.5 Sonnet** or **Claude 3 Haiku** (Anthropic), or  
+3. **Enable** at least one model you’ll use for TicketResolve, e.g.:
+   - **Claude 3.5 Sonnet** or **Claude 3 Haiku** (Anthropic), or
    - **Amazon Nova Lite** or **Nova Pro** (Amazon).
 
-You can enable more later. For Guide 3 we’ll need at least one chat model; for embeddings (Guide 2) we’ll use Bedrock Titan or Cohere if you enable them.
+You can enable more later. For Guide 3 we need at least one chat model; for embeddings (Guide 2) we’ll use Bedrock Titan or Cohere if you enable them.
 
 ---
 
@@ -96,19 +85,19 @@ You can enable more later. For Guide 3 we’ll need at least one chat model; for
 
 **4.1 – Configure the CLI**
 
-On your machine, configure the CLI to use the IAM user you created:
+On your machine, point the CLI at the IAM user you created:
 
 ```bash
 aws configure
 ```
 
-- **AWS Access Key ID** / **Secret Access Key**: create access keys for `ticketresolve-dev` in IAM → Users → Security credentials → Create access key (e.g. “Command line use”).
+- **AWS Access Key ID** / **Secret Access Key**: Create access keys for `ticketresolve-dev` in IAM → Users → Security credentials → Create access key (e.g. “Command line use”).
 - **Default region**: e.g. `ap-southeast-2` (must be a region where Bedrock is available).
 - **Output format**: `json` is fine.
 
-**4.2 – Verify Bedrock access**
+**4.2 – Verify Bedrock**
 
-List available foundation models (optional; confirms Bedrock API is reachable):
+List available foundation models (optional; confirms the Bedrock API is reachable):
 
 ```bash
 aws bedrock list-foundation-models --region ap-southeast-2 --query "modelSummaries[?contains(modelId, 'claude') || contains(modelId, 'nova')].[modelId]" --output table
@@ -120,9 +109,9 @@ Or invoke a model (replace `MODEL_ID` with an enabled model, e.g. `anthropic.cla
 aws bedrock-runtime invoke-model --region ap-southeast-2 --model-id MODEL_ID --body "{\"anthropic_version\":\"bedrock-2023-05-31\",\"max_tokens\":50,\"messages\":[{\"role\":\"user\",\"content\":\"Say hello in one word.\"}]}" --content-type application/json out.json
 ```
 
-Then open `out.json` to confirm you get a response (you’ll see content in the file).
+Open `out.json` to confirm you get a response.
 
-**4.3 – Verify S3 access**
+**4.3 – Verify S3**
 
 Create a test bucket (use a globally unique name):
 
@@ -131,24 +120,24 @@ aws s3 mb s3://ticketresolve-vectors-YOUR_ACCOUNT_ID --region ap-southeast-2
 aws s3 ls s3://ticketresolve-vectors-YOUR_ACCOUNT_ID
 ```
 
-Then delete it if you like (we’ll create the real bucket in Guide 2):
+You can delete it afterward (we’ll create the real bucket in Guide 2):
 
 ```bash
 aws s3 rb s3://ticketresolve-vectors-YOUR_ACCOUNT_ID
 ```
 
-If both Bedrock and S3 commands succeed, your permissions and CLI setup are correct.
+If both Bedrock and S3 commands work, your permissions and CLI setup are good.
 
 ---
 
-## Step 5 – Document your choices (optional but useful)
+## Step 5 – Write down your choices (optional but helpful)
 
-In your notes or a local file (do **not** commit secrets), record:
+In your notes or a local file (don’t commit secrets), record:
 
-- IAM user name and policy name.
-- AWS region you’re using (e.g. `ap-southeast-2`).
-- Bedrock model ID you enabled (e.g. `anthropic.claude-3-5-sonnet-20241022-v2:0`).
-- S3 bucket name prefix you’ll use (e.g. `ticketresolve-vectors-`).
+- IAM user name and policy name
+- AWS region (e.g. `ap-southeast-2`)
+- Bedrock model ID you enabled (e.g. `anthropic.claude-3-5-sonnet-20241022-v2:0`)
+- S3 bucket name prefix (e.g. `ticketresolve-vectors-`)
 
 You’ll need these in Guide 2 and 3.
 
@@ -162,4 +151,4 @@ You’ll need these in Guide 2 and 3.
 - [ ] `aws configure` done with that user’s keys and the correct region.
 - [ ] Bedrock and S3 commands run successfully from the CLI.
 
-When all are done, you’re ready for **Guide 2 – Vectors and ingest** (S3 Vectors bucket and document/ticket ingestion pipeline).
+When all of that is done, you’re ready for **Guide 2 – Vectors and ingest** (S3 Vectors bucket and the doc/ticket ingestion pipeline).
